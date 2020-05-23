@@ -2,6 +2,8 @@ import socket
 import select
 import time
 
+quiz_started = False
+
 #defining protoclols parameters
 HEADER_LENGTH = 10
 exit_commands = ("close", "exit", "quit")
@@ -52,7 +54,7 @@ def accept_client(socket, sockets_list, clients):
 
 def assert_type(expected, real, user, msg):
     if real != expected:
-        print(f"Unexpected msg type {real}('{expected}' expected) \n"
+        print(f"Unexpected msg type '{real}' ('{expected}' expected) \n"
               f"from {user} with payload {msg}. ")
         return False
     return True
@@ -65,7 +67,7 @@ def closed_connection(notified_socket, sockets_list, clients, user):
 def broadcast(msg, clients, msg_type="o"):
     for client in clients.keys():
         client.send(cr_msg(msg, msg_type))
-    print(f"Broadcasting message {msg} type {msg_type}" )
+    print(f'Broadcasting message "{msg}" type "{msg_type}"' )
 
 
 #defining data for TCP and IP protocols
@@ -84,13 +86,14 @@ sockets_list = [server_soket]
 clients = {}
 
 #defining data for the quiz
-questions = ["question1", 'question2', 'question3']
-TIME_FOR_QUESTION = 10
+questions = [("question1", "answer1"), ('question2', 'answer2'), ('question3', 'answer3')]
+TIME_FOR_QUESTION = 30
 
 run = True
 while run: #main loop
-    quiz_started = False
+    print("Accepting all connections and listening to the commands...")
 
+    quiz_started = False
     while not quiz_started: #accepting all connections and listening to the commands
         read_sockets, _, exception_sockets = select.select(sockets_list, [], sockets_list)
         for notified_socket in read_sockets:
@@ -116,21 +119,22 @@ while run: #main loop
                     print("THE QUIZ IS STARTED")
 
         for notified_socket in exception_sockets:
-            sockets_list.remove(notified_socket)
-            del clients[notified_socket]
+            closed_connection(notified_socket, sockets_list, clients, user + " (exception socket)")
 
     for q in questions:
-
+        winner = "Friendship"
         print(f"Asking the question: {q}")
-        broadcast(q, clients, "q")
+        broadcast(q[0], clients, "q")
         t = time.time()
 
         #listening to the answers
-        while time.time() - t < TIME_FOR_QUESTION: # collecting the answers
+        correct_answer_recieved = False
+        while time.time() - t < TIME_FOR_QUESTION and not correct_answer_recieved: # collecting the answers
             # import pdb
             # pdb.set_trace()
-            read_sockets, _, exception_sockets = select.select(sockets_list, [], sockets_list, 1)
+            read_sockets, _, exception_sockets = select.select(sockets_list, [], sockets_list, 0)
             for notified_socket in read_sockets:
+
                 if notified_socket == server_soket: #accepting new connection
                     if not accept_client(server_soket, sockets_list, clients):
                         print(f"Error with connecting client")
@@ -146,12 +150,21 @@ while run: #main loop
                         continue
 
                     print(f"Received an answer from {user}: {answ} on {int(time.time() - t)} seconds")
+                    if correct_answer_recieved:
+                        print("But correct answer already received")
+                    if  answ == q[1]:
+                        # import pdb
+                        # pdb.set_trace()
+                        print("And that's right")
+                        correct_answer_recieved = True
+                        winner = user
+                    else:
+                        print("And it's wrong!")
 
             for notified_socket in exception_sockets:
-                sockets_list.remove(notified_socket)
-                del clients[notified_socket]
+                closed_connection(notified_socket, sockets_list, clients, user + " (exception socket)")
 
         #announcing the winner
-        broadcast("Friendship", clients, "w")
+        broadcast(winner, clients, "w")
         print(f"time: {time.time() - t} ")
     broadcast("end", clients, "i")

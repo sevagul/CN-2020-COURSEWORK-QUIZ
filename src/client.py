@@ -3,6 +3,33 @@ import select
 import errno
 import sys
 import time
+from tkinter import *
+
+# root = Tk()
+# root.title("Does the pinguin have elbows?")
+#
+# def clearFrame():
+#     # destroy all widgets from frame
+#     for widget in root.winfo_children():
+#        widget.destroy()
+#
+#     # this will clear frame and frame will be empty
+#     # if you want to hide the empty panel then
+#     root.pack_forget()
+#
+# def addWelcomeWindow():
+#     global welcome_label, name_enter, buttonEnter, errorLabel
+#     welcome_label = Label(root, text="Welcome!\n Please, enter your nickname:")
+#     name_enter = Entry(root, text="Enter your nickname", borderwidth=5)
+#     buttonEnter = Button(root, text="Enter")
+#     buttonEnter.configure(command=lambda: print(name_enter.get()))
+#     errorLabel = Label(text="")
+#     welcome_label.pack()
+#     name_enter.pack()
+#     buttonEnter.pack()
+#
+# addWelcomeWindow()
+
 
 #defining protocols parameters
 HEADER_LENGTH = 10
@@ -40,12 +67,12 @@ def receive_msg(socket):
         return ("", "continue")
 
 def check_msg(socket):
-    try:
-        msg = socket.recv(0).decode()
-        if msg == "":
-            return "e" # connection is closed
-    except:
+    # import pdb
+    # pdb.set_trace()
+    socket, *_ = select.select([socket], [], [], 0)
+    if socket == []:
         return "continue"
+    return "e"
 
 def assert_type(expected, real, user, msg):
     if real != expected:
@@ -65,6 +92,10 @@ def end_session(socket, send_msg=False):
         socket.send(cr_msg("Closing connection", "e"))
     socket.close()
     sys.exit()
+def send_msg(msg, type, socket):
+    socket.send(cr_msg(msg, type))
+    print(f"\t\tSent message {cr_msg(msg, type)}")
+
 
 
 #defining data for TCP and IP protocols
@@ -97,6 +128,8 @@ while True:
 
 print(f"Welcome to the quiz!\n",
        f"Please enter your username in order to participate in the next available quiz.")
+#nameEntered = False
+#while not nameEntered:
 
 my_username = input("Username: ")
 client_socket.send(cr_msg(my_username, "j"))
@@ -109,6 +142,7 @@ while True: #main loop
           "c - send commands to the server\n"
           "o - to observe the whole process")
 
+    quiz_lasts = False
     # inputing the role of the client
     while True:
         role = input(f"{my_username} > ")
@@ -125,36 +159,49 @@ while True: #main loop
             client_socket.send(cr_msg(role, "e"))
             end_session(client_socket, send_msg=True)
         else:
+            if check_msg(client_socket) != "continue":
+                msg, type = receive_msg(client_socket)
+                if not assert_types("i", type) or msg != "start":
+                    print("Quiz is in process. Do you want to wait for the current quiz to end?")
+                    sys.exit()
+
+                role = "w"
+                print("quiz already started, so your role is w")
+                quiz_lasts = True
+                break
+
             print("Incorrect input. Try again")
 
     # waiting for quiz to start
-    quiz_started = False
-    while not quiz_started:
-        if role == "c":
+    #quiz_started = False
+    start_cmd_received = False
+    while True and not quiz_lasts:
+        if role == "c" and not start_cmd_received:
             cmd = input(f"{my_username} > ")
             if cmd:
                 client_socket.send(cr_msg(cmd, "c"))
-            #         quiz_started = True
-        while True:
-            msg, type = receive_msg(client_socket)
-            if type == "continue":
-                break
-            if type == "e":
-                print("Connection closed by the server")
-                end_session(client_socket)
-            if not assert_type('i', type, "server", msg):
-                end_session(client_socket, send_msg=True)
-            # print(f"Message from the server: {msg}")
-            if msg == "start":
-                quiz_started = True
-                print("Quiz sarted")
-                break
+                if cmd == "start":
+                    start_cmd_received = True
+
+        msg, type = receive_msg(client_socket)
+        if type == "continue":
+            continue
+        if type == "e":
+            print("Connection closed by the server")
+            end_session(client_socket)
+        if not assert_type('i', type, "server", msg):
+            end_session(client_socket, send_msg=True)
+        # print(f"Message from the server: {msg}")
+        if msg == "start":
+            #quiz_started = True
+            print("Quiz sarted")
+            break
 
 
     quiz_lasts = True
     while quiz_lasts:
-
-        print("Waiting for the question...")
+        if not check_msg(client_socket):
+            print("Waiting for the question...")
         while True:
             time.sleep(0.5)
             quest, type = receive_msg(client_socket)
@@ -176,15 +223,18 @@ while True: #main loop
             break
 
         #answering the question
+        answered = False
         while True:
-            if role != "o":
+            if role != "o" and check_msg(client_socket) == "continue" and not answered:
                 answ = input(f"{my_username} (Your Suggestion) > ")
                 if answ != "":
                     if answ.startswith(exit_commands):
                         end_session(client_socket, True)
                     type = check_msg(client_socket)
                     if type == "continue":
-                        client_socket.send(cr_msg(answ, "a"))
+                        send_msg(answ, "a", client_socket)
+                        answered = True
+                        print("Waiting for the quiz results")
                     else:
                         print("Too late, go further")
             msg, type = receive_msg(client_socket)
