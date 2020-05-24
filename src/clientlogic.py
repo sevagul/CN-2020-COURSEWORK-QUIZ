@@ -28,34 +28,25 @@ class ClientLogic:
         }
         self.IP = "127.0.0.1"
         self.PORT = 1234
-
+        self.username="Noname"
         # defining vars for clients logic
         roles = {"w",  # to wait for the quiz
                  "c",  # to write command for the server
                  "o"  # to just observe all the process
                  }
 
-        # connecting to the server
-        self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-
-
     def try_to_connect(self):
         try:
+            self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.client_socket.connect((self.IP, self.PORT))
             self.client_socket.setblocking(False)
+            self.send_msg(self.username, "j")
             print("Successfully connected to the server!")
             return True
         except Exception as ex:
+            print("Failed connecting to the server!")
             print(str(ex))
             return False
-        # print('Failed to connect to ', IP, " ", PORT, ".\n ERROR: ", str(ex))
-        # print("To try the connection again, type yes, to exit do whatewer you want.")
-        # answ = input(f"Enter the answer > ")
-        # if answ.strip() == "yes":
-        #     continue
-        # else:
-        #     sys.exit()
 
     def cr_header(self, str, msg_type):
         assert len(msg_type) == 1
@@ -79,12 +70,10 @@ class ClientLogic:
             return ("", "continue")
 
     def check_socket(self):
-        import pdb
-        pdb.set_trace()
         socket, *_ = select.select([self.client_socket], [], [self.client_socket], 0)
         if socket == []:
-            return "continue"
-        return "e"
+            return False
+        return True
 
     def assert_type(self, expected, real, user, msg):
         if real != expected:
@@ -93,10 +82,10 @@ class ClientLogic:
             return False
         return True
 
-    def assert_types(expected, real, user, msg):
+    def assert_types(self, expected, real, msg):
         if real not in expected:
             print(f"Unexpected msg type {real}('{expected}' expected) \n"
-                  f"from {user} with payload {msg}. ")
+                  f"from {self.username} with payload {msg}. ")
             return False
         return True
 
@@ -104,8 +93,28 @@ class ClientLogic:
         if send_msg:
             self.client_socket.send(self.cr_msg("Closing connection", "e"))
         self.client_socket.close()
-        sys.exit()
 
     def send_msg(self, msg, type):
         self.client_socket.send(self.cr_msg(msg, type))
         print(f"\t\tSent message {self.cr_msg(msg, type)}")
+    def start(self):
+        self.send_msg("start", "c")
+    def check_if_started(self):
+        msg, type = self.receive_msg()
+        print(f"Checking if it is start {msg} {type}")
+        if self.assert_types("i", type, msg) and msg == "start":
+            return True
+        return False
+    def check_question(self):
+        quest, type = self.receive_msg()
+        if type == "e":
+            print("Connection closed by the server")
+            self.end_session()
+            return "","e"
+        if not self.assert_types(("q", "i", "w"), type, quest):
+            self.end_session(send_msg=True)
+            return "", "e"
+        if quest == "end":
+            print("The quiz is ended. Now, lets wait for the next round")
+            return False, False
+        return quest, type

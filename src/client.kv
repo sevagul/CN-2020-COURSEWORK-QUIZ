@@ -3,10 +3,65 @@
     GridLayout:
         cols:1
         Label:
-            text: "Connection Error Occured.\n Try to Reconnect or exit?"
+            text: "It seems like server shut down.\n It is likely server is shut down\nTry to Reconnect or exit?"
         GridLayout:
             cols: 2
             Button:
                 text: "Reconnect"
+                on_release: root.try_again()
             Button:
                 text: "Exit program"
+                on_release: app.exit()
+<WelcomeWindow>:
+    name: "welcome"
+    username: username
+    GridLayout:
+        cols:1
+        Label:
+            text: "Welcome to the quiz application!\n Please, enter you nickname to continue"
+        TextInput:
+            id: username
+        Button:
+            text: "Enter"
+            on_release: root.submit()
+<WaitWindow>:
+    name: "wait"
+    GridLayout:
+        cols:2
+        GridLayout:
+            cols:1
+            Label:
+                text: "Waiting fro the qiuz!\n Press 'Start' to start"
+            Button:
+                text: "Start"
+                on_release: root.start()
+        Label:
+            text: "List of users"
+        Label:
+            text: "Name of the quiz"
+        Label:
+            text: "Create quiz"
+<QuizWindow>:
+    name: "quiz"
+    question: question
+    GridLayout:
+        cols:1
+        Label:
+            id: question
+            text: "questionDefault"
+        Button:
+            text: "answer1"
+        Button:
+            text: "answer2"
+        Button:
+            text: "answer3"
+        Button:
+            text: "answer3"
+<ResultWindow>
+    name: "result"
+    winner: winner
+    GridLayout:
+        cols:1
+        Label:
+            id: winner
+            text: "Winner is "

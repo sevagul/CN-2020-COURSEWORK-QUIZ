@@ -1,3 +1,4 @@
+import operator
 import socket
 import select
 import time
@@ -87,7 +88,7 @@ clients = {}
 
 #defining data for the quiz
 questions = [("question1", "answer1"), ('question2', 'answer2'), ('question3', 'answer3')]
-TIME_FOR_QUESTION = 30
+TIME_FOR_QUESTION = 3
 
 run = True
 while run: #main loop
@@ -117,10 +118,11 @@ while run: #main loop
                     quiz_started = True
                     broadcast("start", clients, "i")
                     print("THE QUIZ IS STARTED")
+                    time.sleep(0.5)
 
         for notified_socket in exception_sockets:
             closed_connection(notified_socket, sockets_list, clients, user + " (exception socket)")
-
+    countScore = {clientName:0 for clientName in clients.values()}
     for q in questions:
         winner = "Friendship"
         print(f"Asking the question: {q}")
@@ -157,6 +159,7 @@ while run: #main loop
                         # pdb.set_trace()
                         print("And that's right")
                         correct_answer_recieved = True
+                        countScore[user] = countScore[user] + 1
                         winner = user
                     else:
                         print("And it's wrong!")
@@ -167,4 +170,14 @@ while run: #main loop
         #announcing the winner
         broadcast(winner, clients, "w")
         print(f"time: {time.time() - t} ")
+        time.sleep(2)
     broadcast("end", clients, "i")
+    overall_winner = max(countScore.items(), key=operator.itemgetter(1))[0]
+    max_score = max(countScore.items(), key=operator.itemgetter(1))[1]
+    number_of_winners = sum([int(v==max_score) for _,v in countScore.items()])
+    if number_of_winners > 1:
+        overall_winner = "Friendship"
+    else:
+        overall_winner += " with " + str(max_score) + " Scores "
+
+    broadcast(overall_winner, clients, "w")
