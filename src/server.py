@@ -29,14 +29,15 @@ msg_types = {
     "w": "winner", # announce the winner
     "e": "exit", # cancel the connection
     "o": "other", # other type. Temporary type to adopt previous version
-    "W": "Winner" #announcing winner of the round
+    "W": "Winner", #announcing winner of the round
+    "u": "users"
     }
 
 
 def cr_header(str, msg_type):
     assert len(msg_type) == 1
     return f"{len(str):<{HEADER_LENGTH}}".encode() + msg_type.encode()
-def cr_msg(msg, msg_type = "o"):
+def cr_msg(msg, msg_type):
     return cr_header(msg, msg_type) + msg.encode()
 def receive_msg(socket):
     try:
@@ -64,6 +65,7 @@ def accept_client(socket, sockets_list, clients):
     clients[client_socket] = user
     print((f"Accepted new connectinon from {client_address[0]} : {client_address[1]}",
            f'{user}'))
+    send_users()
     return True
 
 def assert_type(expected, real, user, msg):
@@ -80,10 +82,11 @@ def closed_connection(notified_socket):
     try:
         sockets_list.remove(notified_socket)
         del clients[notified_socket]
+        send_users()
     except:
         print()
 
-def broadcast(msg, msg_type="o"):
+def broadcast(msg, msg_type):
     global clients
     global sockets_list
     close = []
@@ -96,7 +99,7 @@ def broadcast(msg, msg_type="o"):
         closed_connection(close[i])
 
     print(f'Broadcasting message "{msg}" type "{msg_type}"' )
-def send(msg, client, msg_type="o"):
+def send(msg, client, msg_type):
     global clients
     global sockets_list
     try:
@@ -114,6 +117,13 @@ def gen_quest(q):
     for i in answs:
         res += i
     return res
+
+def send_users():
+    answ = ""
+    for i in clients.values():
+        answ += cr_msg(i, "u").decode()
+    broadcast(answ, "u")
+
 
 #defining data for TCP and IP protocols
 IP = "127.0.0.1"

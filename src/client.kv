@@ -26,6 +26,7 @@
             on_release: root.submit()
 <WaitWindow>:
     name: "wait"
+    users: users
     info:info
     GridLayout:
         cols:2
@@ -38,7 +39,8 @@
                 text: "Start"
                 on_release: root.start()
         Label:
-            text: "List of users"
+            id: users
+            text: "List of users\n"
         Label:
             text: "Name of the quiz"
         Label:

@@ -36,12 +36,18 @@ class WelcomeWindow(Screen):
 
 class WaitWindow(Screen):
     info = ObjectProperty(None)
+    users = ObjectProperty(None)
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
     def start(self):
         logic.start()
     def process(self, msg):
         pass
+    def setUsers(self, usrs):
+        self.users.text = "List of users\n"
+        for usr in usrs:
+            self.users.text += usr + "\n"
+
 
 
 
@@ -107,7 +113,7 @@ class ConnErrWindow(Screen):
         print("trying again...")
         if logic.try_to_connect():
             print("succeed")
-            wm.current = "welcome"
+            wm.current = "wait"
         else:
             print("failed")
             wm.current = "connError"
@@ -121,8 +127,8 @@ wm = WindowManager()
 logic = ClientLogic()
 
 
-
-screens = [ConnErrWindow(name = "connError"), WelcomeWindow(name = "welcome"), WaitWindow(name="wait"), QuizWindow(name="quiz"), ResultWindow(winnerName="Nobody", name="result")]
+waitWindow = WaitWindow(name="wait")
+screens = [ConnErrWindow(name = "connError"), WelcomeWindow(name = "welcome"), waitWindow, QuizWindow(name="quiz"), ResultWindow(winnerName="Nobody", name="result")]
 for screen in screens:
     wm.add_widget(screen)
 
@@ -144,6 +150,9 @@ class ClientApp(App):
             return
         if msg_type == "e":
             if wm.current == "connError":
+                return
+            if msg == "closed":
+                wm.current = "connError"
                 return
             logic.end_session()
             app.stop()
@@ -175,7 +184,11 @@ class ClientApp(App):
                 if msg == "gotowait":
                     wm.current = "wait"
                     return
+                print("Got msg_type 'o' but unknown instructions")
             print("Got msg_type 'o' but unknown instructions")
+        if msg_type == "u":
+            waitWindow.setUsers(msg)
+            return
 
         print(f"Got unrecognized message {msg} of msg_type {msg_type}" )
             #pdb.set_trace()

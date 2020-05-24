@@ -59,7 +59,7 @@ class ClientLogic:
         try:
             msg_header = self.client_socket.recv(self.HEADER_LENGTH).decode()
             if msg_header == "":
-                return ("", "e")  # connection is closed
+                return ("closed", "e")  # connection is closed
             msg_len = int(msg_header)
             msg_type = self.client_socket.recv(1).decode()
             msg = self.client_socket.recv(msg_len).decode()
@@ -112,6 +112,16 @@ class ClientLogic:
             if msg == "already":
                 return "already"
         return False
+    def decode_list(self, msg):
+        users = []
+        while(len(msg)>0):
+            h = self.HEADER_LENGTH
+            msg_len = int(msg[:h])
+            msg = msg[h + 1:]
+            user = msg[:msg_len]
+            msg = msg[msg_len:]
+            users.append(user)
+        return users
 
     def check_question(self):
         quest, type = self.receive_msg()
@@ -163,7 +173,7 @@ class ClientLogic:
         else:
             msg, type = self.receive_msg()
             if type == "e":
-                return "exit", "e"
+                return msg, "e"
             if type == "continue":
                 return "continue", False
             if type == "i":
@@ -181,6 +191,8 @@ class ClientLogic:
                 return self.decode_quest(msg), "q"
             if type == "o":
                 return msg, "o"
+            if type == "u":
+                return self.decode_list(msg), "u"
             return "Unrecognized type", "e"
 
 
