@@ -70,10 +70,14 @@ class ClientLogic:
             return ("", "continue")
 
     def check_socket(self):
-        socket, *_ = select.select([self.client_socket], [], [self.client_socket], 0)
-        if socket == []:
+        try:
+            socket, *_ = select.select([self.client_socket], [], [self.client_socket], 0)
+            if socket == []:
+                return False
+            return True
+        except:
             return False
-        return True
+
 
     def assert_type(self, expected, real, msg):
         if real != expected:
@@ -152,3 +156,31 @@ class ClientLogic:
             return "", "e"
         if type == "w":
             return quest, type
+    def get_income(self):
+        if_there = self.check_socket()
+        if if_there is False:
+            return "empty", False
+        else:
+            msg, type = self.receive_msg()
+            if type == "e":
+                return "exit", "e"
+            if type == "continue":
+                return "continue", False
+            if type == "i":
+                if msg == "start":
+                    return "start", "i"
+                if msg == "already":
+                    return "already", "i"
+                if msg == "end":
+                    return "end", "i"
+            if type == "w":
+                return msg, type
+            if type == "W":
+                return msg, type
+            if type == "q":
+                return self.decode_quest(msg), "q"
+            if type == "o":
+                return msg, "o"
+            return "Unrecognized type", "e"
+
+

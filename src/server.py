@@ -3,9 +3,20 @@ import socket
 import select
 import time
 
+
+#defining data for the quiz
+questions = [("What is the world’s most heavy land mammal?",
+              "Hippopotamus", ["Hippopotamus", "Elephant", "Giraffe", "Gaur"]),
+             ('Which Middle Eastern city is also the name of a type of artichoke',
+              'Jerusalem', ["Jerusalem", "Istanbul", "Tehran", "Dubai"]),
+             ('The Velocipede was a nineteenth-century prototype of what?',
+              'a Bicycle', ["a Plane", "a Boat", "a Car", "a Bicycle"])]
+TIME_FOR_QUESTION = 10
+
 quiz_started = False
 
 #defining protoclols parameters
+
 HEADER_LENGTH = 10
 exit_commands = ("close", "exit", "quit")
 msg_types = {
@@ -16,7 +27,8 @@ msg_types = {
     "a": "answer", # send answer for the question
     "w": "winner", # announce the winner
     "e": "exit", # cancel the connection
-    "o": "other" # other type. Temporary type to adopt previous version
+    "o": "other", # other type. Temporary type to adopt previous version
+    "W": "Winner" #announcing winner of the round
     }
 
 
@@ -74,8 +86,11 @@ def broadcast(msg, clients, msg_type="o"):
 
     print(f'Broadcasting message "{msg}" type "{msg_type}"' )
 def send(msg, client, msg_type="o"):
-
-    client.send(cr_msg(msg, msg_type))
+    try:
+        client.send(cr_msg(msg, msg_type))
+    except:
+        print(f'Failed to send message "{msg}" type "{msg_type}" to {clients[client]}')
+        closed_connection(client, sockets_list, clients, user + " (exception socket)")
     print(f'Sent message "{msg}" type "{msg_type}" to {clients[client]}' )
 
 def gen_quest(q):
@@ -101,14 +116,10 @@ server_soket.listen()
 sockets_list = [server_soket]
 clients = {}
 
-#defining data for the quiz
-questions = [("What is the world’s most heavy land mammal?",
-              "Hippopotamus", ["Hippopotamus", "Elephant", "Giraffe", "Gaur"]),
-             ('Which Middle Eastern city is also the name of a type of artichoke',
-              'Jerusalem', ["Jerusalem", "Istanbul", "Tehran", "Dubai"]),
-             ('The Velocipede was a nineteenth-century prototype of what?',
-              'a Bicycle', ["a Plane", "a Boat", "a Car", "a Bicycle"])]
-TIME_FOR_QUESTION = 3
+
+
+
+status = "wait"
 
 run = True
 while run: #main loop
@@ -205,4 +216,74 @@ while run: #main loop
     else:
         overall_winner += " with " + str(max_score) + " Scores "
 
-    broadcast(overall_winner, clients, "w")
+    broadcast(overall_winner, clients, "W")
+
+def process_income():
+    global status
+    global correct_answer_recieved
+    global winner
+    global sockets_list
+    global clients
+    read_sockets, exception_sockets = None, None
+    if status == "wait":
+        global read_sockets, exception_sockets
+        read_sockets, _, exception_sockets = select.select(sockets_list, [], sockets_list)
+    elif status == "quiz":
+        global read_sockets, exception_sockets
+        read_sockets, _, exception_sockets = select.select(sockets_list, [], sockets_list, 0)
+    else:
+        print("Status error!")
+    for notified_socket in read_sockets:
+
+        if notified_socket == server_soket:  # accepting new connection
+            if not accept_client(server_soket, sockets_list, clients):
+                print(f"Error with connecting client")
+        else:
+            answ, type = receive_msg(notified_socket)
+            user = clients[notified_socket]
+            if type == "e":
+                closed_connection(notified_socket, sockets_list, clients, user)
+                return
+            if type == "continue":
+                return
+            if type == "c" and answ == "start":
+                if status == "wait":
+                    broadcast("start", clients, "i")
+                    broadcast(gen_quest(q), clients, "q")
+                    status = "quiz"
+                    return
+                if status == "quiz":
+                    send("start", notified_socket, "i")
+                    send(gen_quest(q), notified_socket, "q")
+                    return
+
+
+            if type == "a":
+                if status == "wait":
+                    send("gotowait", notified_socket, "o")
+                    return
+                elif status == "quiz":
+                    print(f"Received an answer from {user}: {answ} on {int(time.time() - t)} seconds")
+                    if correct_answer_recieved:
+                        print("But correct answer already received")
+                        return
+                    if answ == q[1]:
+                        print("And that's right")
+                        correct_answer_recieved = True
+                        countScore[user] = countScore[user] + 1
+                        winner = user
+                        return
+                    else:
+                        print("And it's wrong!")
+                        return
+                else:
+                    print("Status error")
+                    return
+            print(f"Unrecognized income type: {type}, msg: {msg}")
+
+
+
+    for notified_socket in exception_sockets:
+        closed_connection(notified_socket, sockets_list, clients, user + " (exception socket)")
+
+

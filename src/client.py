@@ -1,292 +1,187 @@
-import socket
-import select
-import errno
-import sys
+import kivy
+from kivy.app import App
+from kivy.event import EventDispatcher
+from kivy.graphics.context import Clock
+from kivy.graphics.context_instructions import Color
+from kivy.graphics.instructions import Callback
+from kivy.graphics.vertex_instructions import Rectangle
+from kivy.uix.screenmanager import ScreenManager, Screen
+from kivy.uix.label import Label
+from kivy.uix.gridlayout import GridLayout
+from kivy.uix.textinput import TextInput
+from kivy.uix.button import Button
+from kivy.uix.widget import Widget
+from kivy.properties import ObjectProperty
+from kivy.uix.popup import Popup
 import time
-from tkinter import *
-
-# root = Tk()
-# root.title("Does the pinguin have elbows?")
-
-# def clearFrame():
-#     # destroy all widgets from frame
-#     for widget in root.winfo_children():
-#        widget.destroy()
-#
-#     # this will clear frame and frame will be empty
-#     # if you want to hide the empty panel then
-#     root.pack_forget()
-#
-# def addWelcomeWindow():
-#     global welcome_label, name_enter, buttonEnter, errorLabel
-#     welcome_label = Label(root, text="Welcome!\n Please, enter your nickname:")
-#     name_enter = Entry(root, text="Enter your nickname", borderwidth=5)
-#     buttonEnter = Button(root, text="Enter")
-#     buttonEnter.configure(command=lambda: print(name_enter.get()))
-#     errorLabel = Label(text="")
-#     welcome_label.pack()
-#     name_enter.pack()
-#     buttonEnter.pack()
-
-# addWelcomeWindow()
-
-
-#defining protocols parameters
-HEADER_LENGTH = 10
-exit_commands = ("close", "exit", "quit")
-msg_types = {
-    "j": "Username", #Information about the username immediately after connecting to the server
-    "c": "command", #cammand for the server. Available commands: start
-    "i": "inform", #inform clients about quiz start or end
-    "q": "question", # ask question during the quiz
-    "a": "answer", # send answer for the question
-    "w": "winner", # announce the winner
-    "e": "exit", # cancel the connection
-    "o": "other" # other type. Temporary type to adopt previous version
-    }
-client_sates = {
-    "connecting": 0,
-    "identification": 1, 
-    "waiting_for_quiz": 2, 
-    "answering_the_question": 3, 
-    "waiting_for_the_next_question": 4,
-    "watching_the_results": 5, 
-}
-
-
-#definig functions for simlified work with protocol
-def cr_header(str, msg_type):
-    assert len(msg_type) == 1
-    return f"{len(str):<{HEADER_LENGTH}}".encode() + msg_type.encode()
-def cr_msg(msg, msg_type = "o"):
-    return cr_header(msg, msg_type) + msg.encode()
-def receive_msg(socket):
-    try:
-        msg_header = socket.recv(HEADER_LENGTH).decode()
-        if msg_header == "":
-            return ("", "e") # connection is closed
-        msg_len = int(msg_header)
-        msg_type = socket.recv(1).decode()
-        msg = socket.recv(msg_len).decode()
-        answ = (msg, msg_type)
-        print(f"\t\t\tReceived msg: {msg}. type: {msg_type}")
-        return answ
-    except:
-        return ("", "continue")
-
-def check_socket(socket):
-    import pdb
-    pdb.set_trace()
-    socket, *_ = select.select([socket], [], [socket], 0)
-    if socket == []:
-        return "continue"
-    return "e"
-
-def assert_type(expected, real, user, msg):
-    if real != expected:
-        print(f"Unexpected msg type {real}('{expected}' expected) \n"
-              f"from {user} with payload {msg}. ")
-        return False
-    return True
-
-def assert_types(expected, real, user, msg):
-    if real not in expected:
-        print(f"Unexpected msg type {real}('{expected}' expected) \n"
-              f"from {user} with payload {msg}. ")
-        return False
-    return True
-def end_session(socket, send_msg=False):
-    if send_msg:
-        socket.send(cr_msg("Closing connection", "e"))
-    socket.close()
-    sys.exit()
-def send_msg(msg, type, socket):
-    socket.send(cr_msg(msg, type))
-    print(f"\t\tSent message {cr_msg(msg, type)}")
+from kivy.uix.floatlayout import FloatLayout
+from kivy.lang import Builder
+from clientlogic import ClientLogic
+import sys
 
 
 
-#defining data for TCP and IP protocols
-IP = "127.0.0.1"
-PORT = 1234
-
-#defining vars for clients logic
-roles = {"w", #to wait for the quiz
-         "c", #to write command for the server
-         "o"  #to just observe all the process
-         }
-
-
-
-
-#connecting to the server
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-while True:
-    try:
-        client_socket.connect(( IP, PORT ))
-        client_socket.setblocking(False)
-        print("Successfully connected to the server!")
-        break
-    except Exception as ex:
-        # print('Failed to connect to ', IP, " ", PORT, ".\n ERROR: ", str(ex))
-        # print("To try the connection again, type yes, to exit do whatewer you want.")
-        # answ = input(f"Enter the answer > ")
-        # if answ.strip() == "yes":
-        #     continue
-        # else:
-        #     sys.exit()
-        try_again = False
-        popup = Tk()
-
-
-        popup.title("Error")
-        label = Label(popup, text="Error while connecting to the server")
-        button1 = Button(popup, text="exit from program")
-        button2 = Button(popup, text="try to connect again")
-        label.grid(column=0, row=0, columnspan=2)
-        def cmd1():
-            global try_again
-            try_again = False
-            popup.destroy()
-        def cmd2():
-            global try_again
-            try_again = True
-            popup.destroy()
-        button1.configure(command=cmd1)
-        button2.configure(command=cmd2)
-        button1.grid(column=0, row=1)
-        button2.grid(column=1, row=1)
-        popup.mainloop()
-
-        print(try_again)
-        print("Popup closed")
-        import pdb
-        pdb.set_trace()
-
-        if not try_again:
-            sys.exit()
+class WelcomeWindow(Screen):
+    username = ObjectProperty(None)
+    def submit(self):
+        print(self.username.text.strip() + " was written when submitting")
+        logic.username=self.username.text.strip()
+        if (len(self.username.text.strip()) == 0):
+            return
+        app.title = "QUIZ IT! (" + logic.username + ")"
+        if not logic.try_to_connect():
+            wm.current = "connError"
         else:
-            continue
+            wm.current = "wait"
 
-# print(f"Welcome to the quiz!\n",
-#        f"Please enter your username in order to participate in the next available quiz.")
-# #nameEntered = False
-# #while not nameEntered:
-#
-# my_username = input("Username: ")
-# client_socket.send(cr_msg(my_username, "j"))
+class WaitWindow(Screen):
+    info = ObjectProperty(None)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+    def start(self):
+        logic.start()
+    def process(self, msg):
+        pass
 
-while True: #main loop
+
+
+class QuizWindow(Screen):
+    question = ObjectProperty(None)
+
+    b1 = ObjectProperty(None)
+    b2 = ObjectProperty(None)
+    b3 = ObjectProperty(None)
+    b4 = ObjectProperty(None)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def button_pressed(self, answer):
+        print("button " + answer + " pressed")
+        if not self.answered:
+            logic.send_msg(answer, "a")
+            self.answered = True
+            return
+        if not self.question.ends_with("Wait for result now..."):
+            self.question = self.question + "\nWait for result now..."
+
+    def redraw_quest(self, q):
+        self.answered = False
+        self.question.text = q[0]
+        self.b1.text = q[1][0]
+        self.b2.text = q[1][1]
+        self.b3.text = q[1][2]
+        self.b4.text = q[1][3]
+
+    def process_quest(self, q):
+        self.redraw_quest(q)
+        print("Draw a question!")
+        return
+
+    def process_win(self, w):
+        if w == logic.username:
+            w = "Correct!"
+        else:
+            w = w + " gave the correct answer"
+        self.question.text = w
+
+class ResultWindow(Screen):
+    winner = ObjectProperty(None)
+    def __init__(self, winnerName, **kwargs):
+        super().__init__(**kwargs)
+        self.winnerName = winnerName
+    winner = ObjectProperty(None)
+    def return_start(self, dt):
+        wm.current = "wait"
+    def process(self, msg):
+        print(f"ResultWindow received something {msg}")
+        if msg.split(" ")[0] != logic.username:
+            self.winner.text = "'" + msg + "'" + "Won\n"
+            self.winner.text += "'" + logic.username + ", " + "keep trying\n"
+        if msg.split(" ")[0] == logic.username:
+            self.winner.text = f"Congrats! You Won!\n{msg}"
+        Clock.schedule_once(self.return_start, 5)
+
+class ConnErrWindow(Screen):
+    def try_again(self):
+        print("trying again...")
+        if logic.try_to_connect():
+            print("succeed")
+            wm.current = "welcome"
+        else:
+            print("failed")
+            wm.current = "connError"
+
+class WindowManager(ScreenManager):
     pass
-    # print("Please, type down, want do you want to do\n"
-    #       "options are: \n"
-    #       "w - wait for the quiz\n"
-    #       "c - send commands to the server\n"
-    #       "o - to observe the whole process")
-    #
-    # quiz_lasts = False
-    # # inputing the role of the client
-    # while True:
-    #     role = input(f"{my_username} > ")
-    #     if role in roles:
-    #         if role == "c":
-    #             print("Type 'start' to start the quiz\n",
-    #                   "Press 'Enter' to check for the new info")
-    #         if role == "w":
-    #             print("Waiting for the quiz starts... (You will participate)")
-    #         if role == "o":
-    #             print("Waiting for the quiz starts... (You will only observe the process)")
-    #         break
-    #     if role.startswith(exit_commands):
-    #         client_socket.send(cr_msg(role, "e"))
-    #         end_session(client_socket, send_msg=True)
-    #     else:
-    #         if check_socket(client_socket) != "continue":
-    #             msg, type = receive_msg(client_socket)
-    #             if not assert_types("i", type) or msg != "start":
-    #                 print("Quiz is in process. Do you want to wait for the current quiz to end?")
-    #                 sys.exit()
-    #
-    #             role = "w"
-    #             print("quiz already started, so your role is w")
-    #             quiz_lasts = True
-    #             break
-    #
-    #         print("Incorrect input. Try again")
-    #
-    # # waiting for quiz to start
-    # #quiz_started = False
-    # start_cmd_received = False
-    # while True and not quiz_lasts:
-    #     if role == "c" and not start_cmd_received:
-    #         cmd = input(f"{my_username} > ")
-    #         if cmd:
-    #             client_socket.send(cr_msg(cmd, "c"))
-    #             if cmd == "start":
-    #                 start_cmd_received = True
-    #
-    #     msg, type = receive_msg(client_socket)
-    #     if type == "continue":
-    #         continue
-    #     if type == "e":
-    #         print("Connection closed by the server")
-    #         end_session(client_socket)
-    #     if not assert_type('i', type, "server", msg):
-    #         end_session(client_socket, send_msg=True)
-    #     # print(f"Message from the server: {msg}")
-    #     if msg == "start":
-    #         #quiz_started = True
-    #         print("Quiz sarted")
-    #         break
-    #
-    #
-    # quiz_lasts = True
-    # while quiz_lasts:
-    #     if not check_socket(client_socket):
-    #         print("Waiting for the question...")
-    #     while True:
-    #         time.sleep(0.5)
-    #         quest, type = receive_msg(client_socket)
-    #         if type == "continue":
-    #             continue
-    #         if type == "e":
-    #             print("Connection closed by the server")
-    #             end_session(client_socket)
-    #         if not assert_types(("q", "i"), type, "server", quest):
-    #             end_session(client_socket, send_msg=True)
-    #         if quest == "end":
-    #             print("The quiz is ended. Now, lets wait for the next round")
-    #             quiz_lasts = False
-    #             break
-    #         print(f"Question: {quest}")
-    #         break
-    #
-    #     if quiz_lasts == False:
-    #         break
-    #
-    #     #answering the question
-    #     answered = False
-    #     while True:
-    #         if role != "o" and check_socket(client_socket) == "continue" and not answered:
-    #             answ = input(f"{my_username} (Your Suggestion) > ")
-    #             if answ != "":
-    #                 if answ.startswith(exit_commands):
-    #                     end_session(client_socket, True)
-    #                 type = check_socket(client_socket)
-    #                 if type == "continue":
-    #                     send_msg(answ, "a", client_socket)
-    #                     answered = True
-    #                     print("Waiting for the quiz results")
-    #                 else:
-    #                     print("Too late, go further")
-    #         msg, type = receive_msg(client_socket)
-    #         if type == "continue":
-    #             continue
-    #         if type == "e":
-    #             print("Connection closed by the server")
-    #             end_session(client_socket)
-    #         if not assert_type("w", type, "server", msg):
-    #             end_session(client_socket, send_msg=True)
-    #         print(f"Winner: {msg}")
-    #         break
+Builder.load_file("client.kv")
+
+
+wm = WindowManager()
+logic = ClientLogic()
+
+
+
+screens = [ConnErrWindow(name = "connError"), WelcomeWindow(name = "welcome"), WaitWindow(name="wait"), QuizWindow(name="quiz"), ResultWindow(winnerName="Nobody", name="result")]
+for screen in screens:
+    wm.add_widget(screen)
+
+wm.current = "welcome"
+
+
+
+class ClientApp(App):
+    def build(self):
+        self.title = "QUIZ IT!"
+        Clock.schedule_interval(self.my_callback, 0.2)
+        return wm
+    def exit(self):
+        logic.end_session()
+        sys.exit()
+    def my_callback(self, dt):
+        msg, type = logic.get_income()
+        if type is False:
+            return
+        if type == "e":
+            logic.end_session()
+            app.stop()
+            sys.exit()
+        if type == "i":
+            if msg == "start":
+                wm.current = "quiz"
+                return
+            if msg == "already":
+                wm.current = "quiz"
+                return
+            if msg == "end":
+                wm.current = "result"
+                return
+        if type == "W":
+            wm.current = "result"
+            wm.current_screen.process(msg)
+            return
+        if type == "q":
+            wm.current = "quiz"
+            wm.current_screen.process_quest(msg)
+            return
+        if type == "w":
+            wm.current = "quiz"
+            wm.current_screen.process_win(msg)
+            return
+        if type == "o":
+            if type(msg) == type(123):
+                if msg == "gotowait":
+                    wm.current = "wait"
+                    return
+            print("Got type 'o' but unknown instructions")
+
+        print(f"Got unrecognized message {msg} of type {type}" )
+            #pdb.set_trace()
+        #wm.current_screen.my_callback(dt)
+
+
+
+
+if __name__ == "__main__":
+    app = ClientApp()
+    app.run()
