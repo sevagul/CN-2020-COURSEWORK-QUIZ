@@ -26,8 +26,8 @@ class WelcomeWindow(Screen):
         pass
     username = ObjectProperty(None)
     def submit(self):
-        print(self.username.text + " was written when submitting")
-        logic.username=self.username.text
+        print(self.username.text.strip() + " was written when submitting")
+        logic.username=self.username.text.strip()
         if not logic.try_to_connect():
             wm.current = "connError"
         else:
@@ -60,11 +60,15 @@ class WaitWindow(Screen):
             if logic.check_if_started():
                 print("WaitWindow Received start command")
                 wm.current = "quiz"
-
     def start(self):
         logic.start()
+
 class QuizWindow(Screen):
     question = ObjectProperty(None)
+    b1 = ObjectProperty(None)
+    b2 = ObjectProperty(None)
+    b3 = ObjectProperty(None)
+    b4 = ObjectProperty(None)
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
     def my_callback(self, dt):
@@ -80,22 +84,42 @@ class QuizWindow(Screen):
              if type == "w":
                 self.winner_announced()
                 a = a + " gave the first correct answer"
+             if type == "q":
+                 self.redraw_quest(a)
+                 return
              print(f"a {a}")
              if type == "i" and a == "end":
                  wm.current_screen = "result"
                  return
              self.question.text = a
-
+    def button_pressed(self, answer):
+        print("button " + answer + " pressed")
+        logic.send_msg(answer, "a")
+    def redraw_quest(self, q):
+        self.question.text = q[0]
+        self.b1.text = q[1][0]
+        self.b2.text = q[1][1]
+        self.b3.text = q[1][2]
+        self.b4.text = q[1][3]
     def winner_announced(self):
         pass
 
 class ResultWindow(Screen):
-    def __init__(self, winner, **kwargs):
+    winner = ObjectProperty(None)
+    def __init__(self, winnerName, **kwargs):
         super().__init__(**kwargs)
-        self.winner = winner
+        self.winnerName = winnerName
     winner = ObjectProperty(None)
     def my_callback(self, dt):
-        pass
+        if logic.check_socket():
+            a, type = logic.check_winner()
+            print(f"ResultWindow received something {a} {type}")
+            if a.split(" ")[0] != logic.username:
+                self.winner.text = "'" + a + "'" + "Won\n"
+                self.winner.text += "'" + logic.username + ", " + "keep trying\n"
+            if a.split(" ")[0] == logic.username:
+                self.winner.text = f"Congrats! You Won!\n{a}"
+
 
 class ConnErrWindow(Screen):
     def my_callback(self, dt):
@@ -117,7 +141,7 @@ Builder.load_file("client.kv")
 wm = WindowManager()
 logic = ClientLogic()
 
-screens = [ConnErrWindow(name = "connError"), WelcomeWindow(name = "welcome"), WaitWindow(name="wait"), QuizWindow(name="quiz"), ResultWindow(winner="Nobody", name="result")]
+screens = [ConnErrWindow(name = "connError"), WelcomeWindow(name = "welcome"), WaitWindow(name="wait"), QuizWindow(name="quiz"), ResultWindow(winnerName="Nobody", name="result")]
 for screen in screens:
     wm.add_widget(screen)
 
@@ -127,7 +151,7 @@ wm.current = "welcome"
 
 class ClientApp(App):
     def build(self):
-        Clock.schedule_interval(self.my_callback, 0.5)
+        Clock.schedule_interval(self.my_callback, 0.2)
         return wm
     def exit(self):
         logic.end_session()

@@ -75,10 +75,10 @@ class ClientLogic:
             return False
         return True
 
-    def assert_type(self, expected, real, user, msg):
+    def assert_type(self, expected, real, msg):
         if real != expected:
             print(f"Unexpected msg type {real}('{expected}' expected) \n"
-                  f"from {user} with payload {msg}. ")
+                  f"from {self.username} with payload {msg}. ")
             return False
         return True
 
@@ -114,7 +114,34 @@ class ClientLogic:
         if not self.assert_types(("q", "i", "w"), type, quest):
             self.end_session(send_msg=True)
             return "", "e"
-        if quest == "end":
+        if quest == "end" and type == "i":
             print("The quiz is ended. Now, lets wait for the next round")
             return False, False
+        if type == "q":
+            quest = self.decode_quest(quest)
         return quest, type
+    def decode_quest(self, q):
+        h = self.HEADER_LENGTH
+        quest_len = int(q[:h])
+        q = q[h+1:]
+        quest = q[:quest_len]
+        q = q[quest_len:]
+        answs = []
+        for i in range(4):
+            answ_len = int(q[:h])
+            q = q[h + 1:]
+            answ = q[:answ_len]
+            q = q[answ_len:]
+            answs.append(answ)
+        return (quest, answs)
+    def check_winner(self):
+        quest, type = self.receive_msg()
+        if type == "e":
+            print("Connection closed by the server")
+            self.end_session()
+            return "", "e"
+        if not self.assert_type("w", type, quest):
+            self.end_session(send_msg=True)
+            return "", "e"
+        if type == "w":
+            return quest, type

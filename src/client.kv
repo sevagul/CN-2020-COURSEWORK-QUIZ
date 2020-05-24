@@ -44,19 +44,33 @@
 <QuizWindow>:
     name: "quiz"
     question: question
+    b1: b1
+    b2: b2
+    b3: b3
+    b4: b4
     GridLayout:
         cols:1
         Label:
             id: question
-            text: "questionDefault"
-        Button:
-            text: "answer1"
-        Button:
-            text: "answer2"
-        Button:
-            text: "answer3"
-        Button:
-            text: "answer3"
+            text: "Waiting for the start..."
+        GridLayout:
+            cols:2
+            Button:
+                id: b1
+                text: "answer1"
+                on_release: root.button_pressed(b1.text)
+            Button:
+                id:b2
+                text: "answer2"
+                on_release: root.button_pressed(b2.text)
+            Button:
+                id: b3
+                text: "answer3"
+                on_release: root.button_pressed( b3.text )
+            Button:
+                id: b4
+                text: "answer4"
+                on_release: root.button_pressed(b4.text)
 <ResultWindow>
     name: "result"
     winner: winner

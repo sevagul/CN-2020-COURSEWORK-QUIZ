@@ -70,6 +70,13 @@ def broadcast(msg, clients, msg_type="o"):
         client.send(cr_msg(msg, msg_type))
     print(f'Broadcasting message "{msg}" type "{msg_type}"' )
 
+def gen_quest(q):
+    quest = cr_msg(q[0], "q").decode()
+    answs = [cr_msg(i, "a").decode() for i in q[2]]
+    res = quest
+    for i in answs:
+        res += i
+    return res
 
 #defining data for TCP and IP protocols
 IP = "127.0.0.1"
@@ -87,7 +94,9 @@ sockets_list = [server_soket]
 clients = {}
 
 #defining data for the quiz
-questions = [("question1", "answer1"), ('question2', 'answer2'), ('question3', 'answer3')]
+questions = [("question1", "var11", ["var11", "var21", "var31", "var41"]),
+             ('question2', 'var22', ["var12", "var22", "var32", "var42"]),
+             ('question3', 'var33', ["var13", "var23", "var33", "var43"])]
 TIME_FOR_QUESTION = 3
 
 run = True
@@ -118,7 +127,7 @@ while run: #main loop
                     quiz_started = True
                     broadcast("start", clients, "i")
                     print("THE QUIZ IS STARTED")
-                    time.sleep(0.5)
+                    time.sleep(1)
 
         for notified_socket in exception_sockets:
             closed_connection(notified_socket, sockets_list, clients, user + " (exception socket)")
@@ -126,7 +135,7 @@ while run: #main loop
     for q in questions:
         winner = "Friendship"
         print(f"Asking the question: {q}")
-        broadcast(q[0], clients, "q")
+        broadcast(gen_quest(q), clients, "q")
         t = time.time()
 
         #listening to the answers
