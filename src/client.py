@@ -101,8 +101,8 @@ class ResultWindow(Screen):
     def process(self, msg):
         print(f"ResultWindow received something {msg}")
         if msg.split(" ")[0] != logic.username:
-            self.winner.text = "'" + msg + "'" + "Won\n"
-            self.winner.text += "'" + logic.username + ", " + "keep trying\n"
+            self.winner.text =  msg + " Won\n"
+            self.winner.text += logic.username + ", " + "keep trying\n"
         if msg.split(" ")[0] == logic.username:
             self.winner.text = f"Congrats! You Won!\n{msg}"
         Clock.schedule_once(self.return_start, 5)

@@ -255,11 +255,12 @@ while run: #main loop
 
         print(f"time: {time.time() - t} ")
         time.sleep(TIME_FOR_LOCAL_WINNER)
+
     broadcast("end", "i")
     overall_winner = max(countScore.items(), key=operator.itemgetter(1))[0]
     max_score = max(countScore.items(), key=operator.itemgetter(1))[1]
     number_of_winners = sum([int(v==max_score) for _,v in countScore.items()])
-    if number_of_winners > 1:
+    if number_of_winners > 1 or max_score == 0:
         overall_winner = "Friendship"
     else:
         overall_winner += " with " + str(max_score) + " Scores "
