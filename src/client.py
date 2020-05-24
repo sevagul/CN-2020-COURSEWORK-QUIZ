@@ -62,8 +62,8 @@ class QuizWindow(Screen):
             logic.send_msg(answer, "a")
             self.answered = True
             return
-        if not self.question.ends_with("Wait for result now..."):
-            self.question = self.question + "\nWait for result now..."
+        if not self.question.text.endswith("Wait for result now..."):
+            self.question.text = self.question.text + "\nWait for result now..."
 
     def redraw_quest(self, q):
         self.answered = False
@@ -139,14 +139,16 @@ class ClientApp(App):
         logic.end_session()
         sys.exit()
     def my_callback(self, dt):
-        msg, type = logic.get_income()
-        if type is False:
+        msg, msg_type = logic.get_income()
+        if msg_type is False:
             return
-        if type == "e":
+        if msg_type == "e":
+            if wm.current == "connError":
+                return
             logic.end_session()
             app.stop()
             sys.exit()
-        if type == "i":
+        if msg_type == "i":
             if msg == "start":
                 wm.current = "quiz"
                 return
@@ -156,26 +158,26 @@ class ClientApp(App):
             if msg == "end":
                 wm.current = "result"
                 return
-        if type == "W":
+        if msg_type == "W":
             wm.current = "result"
             wm.current_screen.process(msg)
             return
-        if type == "q":
+        if msg_type == "q":
             wm.current = "quiz"
             wm.current_screen.process_quest(msg)
             return
-        if type == "w":
+        if msg_type == "w":
             wm.current = "quiz"
             wm.current_screen.process_win(msg)
             return
-        if type == "o":
+        if msg_type == "o":
             if type(msg) == type(123):
                 if msg == "gotowait":
                     wm.current = "wait"
                     return
-            print("Got type 'o' but unknown instructions")
+            print("Got msg_type 'o' but unknown instructions")
 
-        print(f"Got unrecognized message {msg} of type {type}" )
+        print(f"Got unrecognized message {msg} of msg_type {msg_type}" )
             #pdb.set_trace()
         #wm.current_screen.my_callback(dt)
 
