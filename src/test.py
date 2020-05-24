@@ -1,23 +1,44 @@
-from tkinter import *
+import kivy
+from kivy.app import App
+from kivy.uix.label import Label
+from kivy.uix.gridlayout import GridLayout
+from kivy.uix.textinput import TextInput
+from kivy.uix.button import Button
+from kivy.uix.widget import Widget
+from kivy.properties import ObjectProperty
+from kivy.uix.popup import Popup
 
-popup = Tk()
-popup.title("Error")
-label=Label(popup, text="Error while connecting to the server")
-button1 = Button(popup, text="exit from program")
-button2 = Button(popup, text="try to connect again")
-label.grid(column=0, row=0, columnspan=2)
-def cmd1():
-    popup.destroy()
-    return False
-def cmd2():
-    popup.destroy()
-    return True
-button1.configure(command = cmd1)
-button2.configure(command = cmd2)
-button1.grid(column=0, row=1)
-button2.grid(column=1, row=1)
-def f():
-    print ("444")
-    popup.after(1, f)
-popup.after(100, f)
-mainloop()
+from kivy.uix.floatlayout import FloatLayout
+from kivy.lang import Builder
+from kivy.uix.screenmanager import ScreenManager, Screen
+
+
+class Widgets(Widget):
+    def btn(self):
+        show_popup()
+
+class P(FloatLayout):
+    pass
+
+
+
+
+
+class MyyApp(App):
+    def build(self):
+        return Widgets()
+
+def show_popup():
+    show = P()
+    popupWindow = Popup(title="Popup window", content= show, size_hint= (None, None), size=(400,400))
+
+    popupWindow.open()
+
+
+
+# kv = Builder.load_file("myy.kv")
+
+if __name__ == "__main__":
+    MyyApp().run()
+
+

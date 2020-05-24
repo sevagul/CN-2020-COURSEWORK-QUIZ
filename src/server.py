@@ -42,7 +42,7 @@ def accept_client(socket, sockets_list, clients):
     client_socket, client_address = socket.accept()
     user, type = receive_msg(client_socket)
     if type != "j":
-        print(f"Connecting failed: type '{type}'' insted of 'j' in header" )
+        print(f"Connecting failed: type '{type}' insted of 'j' in header" )
         return False
     if user is False:
         return False
