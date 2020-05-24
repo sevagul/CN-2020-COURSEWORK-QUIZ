@@ -26,12 +26,14 @@
             on_release: root.submit()
 <WaitWindow>:
     name: "wait"
+    info:info
     GridLayout:
         cols:2
         GridLayout:
             cols:1
             Label:
-                text: "Waiting fro the qiuz!\n Press 'Start' to start"
+                id: info
+                text: "Waiting for the quiz!\n Press 'Start' to start or join lasting quiz"
             Button:
                 text: "Start"
                 on_release: root.start()
@@ -52,24 +54,24 @@
         cols:1
         Label:
             id: question
-            text: "Waiting for the start..."
+            text: "Loading..."
         GridLayout:
             cols:2
             Button:
                 id: b1
-                text: "answer1"
+                text: "Loading..."
                 on_release: root.button_pressed(b1.text)
             Button:
                 id:b2
-                text: "answer2"
+                text: "Loading..."
                 on_release: root.button_pressed(b2.text)
             Button:
                 id: b3
-                text: "answer3"
+                text: "Loading..."
                 on_release: root.button_pressed( b3.text )
             Button:
                 id: b4
-                text: "answer4"
+                text: "Loading..."
                 on_release: root.button_pressed(b4.text)
 <ResultWindow>
     name: "result"

@@ -67,8 +67,16 @@ def closed_connection(notified_socket, sockets_list, clients, user):
 
 def broadcast(msg, clients, msg_type="o"):
     for client in clients.keys():
-        client.send(cr_msg(msg, msg_type))
+        try:
+            client.send(cr_msg(msg, msg_type))
+        except:
+            closed_connection(client, sockets_list, clients, user + " (exception socket)")
+
     print(f'Broadcasting message "{msg}" type "{msg_type}"' )
+def send(msg, client, msg_type="o"):
+
+    client.send(cr_msg(msg, msg_type))
+    print(f'Sent message "{msg}" type "{msg_type}" to {clients[client]}' )
 
 def gen_quest(q):
     quest = cr_msg(q[0], "q").decode()
@@ -135,10 +143,11 @@ while run: #main loop
         for notified_socket in exception_sockets:
             closed_connection(notified_socket, sockets_list, clients, user + " (exception socket)")
     countScore = {clientName:0 for clientName in clients.values()}
+    quiz_clients = clients.copy()
     for q in questions:
         winner = "Friendship"
         print(f"Asking the question: {q}")
-        broadcast(gen_quest(q), clients, "q")
+        broadcast(gen_quest(q), quiz_clients, "q")
         t = time.time()
 
         #listening to the answers
@@ -160,6 +169,10 @@ while run: #main loop
                         continue
                     if type == "continue":
                         continue
+                    if type == "c" and answ == "start":
+                        quiz_clients[notified_socket] = clients[notified_socket]
+                        send("already", notified_socket, "i")
+                        send(gen_quest(q), notified_socket, "q")
                     if not assert_type('a', type, user, answ):
                         continue
 
@@ -180,7 +193,7 @@ while run: #main loop
                 closed_connection(notified_socket, sockets_list, clients, user + " (exception socket)")
 
         #announcing the winner
-        broadcast(winner, clients, "w")
+        broadcast(winner, quiz_clients, "w")
         print(f"time: {time.time() - t} ")
         time.sleep(2)
     broadcast("end", clients, "i")

@@ -28,6 +28,9 @@ class WelcomeWindow(Screen):
     def submit(self):
         print(self.username.text.strip() + " was written when submitting")
         logic.username=self.username.text.strip()
+        if (len(self.username.text.strip()) == 0):
+            return
+        self.title = "QUIZ IT! (" + logic.username + ")"
         if not logic.try_to_connect():
             wm.current = "connError"
         else:
@@ -48,6 +51,7 @@ class WelcomeWindow(Screen):
 
 
 class WaitWindow(Screen):
+    info = ObjectProperty(None)
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         with self.canvas:
@@ -57,11 +61,20 @@ class WaitWindow(Screen):
     def my_callback(self, dt):
         if logic.check_socket():
             print("WaitWindow Received ANY command")
-            if logic.check_if_started():
+            resp = logic.check_if_started()
+            if resp is True:
                 print("WaitWindow Received start command")
                 wm.current = "quiz"
+
+            if type(resp) == type("already"):
+                print("Received text response")
+                if resp == "already":
+                    print("Received 'arleady' response")
+                    wm.current = "quiz"
     def start(self):
         logic.start()
+
+
 
 class QuizWindow(Screen):
     question = ObjectProperty(None)
@@ -88,6 +101,7 @@ class QuizWindow(Screen):
              if type == "w":
                 self.winner_announced()
                 a = a + " gave the correct answer"
+                self.question.text = a
              if type == "q":
                  self.redraw_quest(a)
                  print("Draw a question!")
@@ -96,7 +110,6 @@ class QuizWindow(Screen):
              if type == "i" and a == "end":
                  wm.current_screen = "result"
                  return
-             self.question.text = a
     def button_pressed(self, answer):
         print("button " + answer + " pressed")
         logic.send_msg(answer, "a")

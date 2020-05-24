@@ -102,9 +102,13 @@ class ClientLogic:
     def check_if_started(self):
         msg, type = self.receive_msg()
         print(f"Checking if it is start {msg} {type}")
-        if self.assert_types("i", type, msg) and msg == "start":
-            return True
+        if self.assert_types("i", type, msg):
+            if msg == "start":
+                return True
+            if msg == "already":
+                return "already"
         return False
+
     def check_question(self):
         quest, type = self.receive_msg()
         if type == "e":
