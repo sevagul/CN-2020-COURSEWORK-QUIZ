@@ -94,9 +94,12 @@ sockets_list = [server_soket]
 clients = {}
 
 #defining data for the quiz
-questions = [("question1", "var11", ["var11", "var21", "var31", "var41"]),
-             ('question2', 'var22', ["var12", "var22", "var32", "var42"]),
-             ('question3', 'var33', ["var13", "var23", "var33", "var43"])]
+questions = [("What is the world’s most heavy land mammal?",
+              "Hippopotamus", ["Hippopotamus", "Elephant", "Giraffe", "Gaur"]),
+             ('Which Middle Eastern city is also the name of a type of artichoke',
+              'Jerusalem', ["Jerusalem", "Istanbul", "Tehran", "Dubai"]),
+             ('The Velocipede was a nineteenth-century prototype of what?',
+              'a Bicycle', ["a Plane", "a Boat", "a Car", "a Bicycle"])]
 TIME_FOR_QUESTION = 3
 
 run = True

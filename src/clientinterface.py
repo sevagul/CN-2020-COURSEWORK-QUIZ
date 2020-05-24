@@ -73,19 +73,24 @@ class QuizWindow(Screen):
         super().__init__(**kwargs)
     def my_callback(self, dt):
          if logic.check_socket():
+             print(f"QuizWindow received something")
              a, type = logic.check_question()
-             print(f"QuizWindow received something {a} {type}")
+             print(f"It received {a} {type}")
              if type is False:
                  print(f"a is False {a}")
                  wm.current = "result"
+                 return
+             if type == "continue":
+                 print("Blank message")
                  return
              if type == "e":
                  sys.exit()
              if type == "w":
                 self.winner_announced()
-                a = a + " gave the first correct answer"
+                a = a + " gave the correct answer"
              if type == "q":
                  self.redraw_quest(a)
+                 print("Draw a question!")
                  return
              print(f"a {a}")
              if type == "i" and a == "end":
@@ -119,7 +124,9 @@ class ResultWindow(Screen):
                 self.winner.text += "'" + logic.username + ", " + "keep trying\n"
             if a.split(" ")[0] == logic.username:
                 self.winner.text = f"Congrats! You Won!\n{a}"
-
+            Clock.schedule_once(self.return_start, 5)
+    def return_start(self, dt):
+        wm.current = "wait"
 
 class ConnErrWindow(Screen):
     def my_callback(self, dt):
@@ -151,6 +158,7 @@ wm.current = "welcome"
 
 class ClientApp(App):
     def build(self):
+        self.title = "QUIZ IT!"
         Clock.schedule_interval(self.my_callback, 0.2)
         return wm
     def exit(self):

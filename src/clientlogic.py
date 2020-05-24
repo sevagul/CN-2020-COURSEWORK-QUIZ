@@ -111,7 +111,10 @@ class ClientLogic:
             print("Connection closed by the server")
             self.end_session()
             return "","e"
+        if type == "continue":
+            return "", "continue"
         if not self.assert_types(("q", "i", "w"), type, quest):
+            print(f"Closing with {quest} {type}")
             self.end_session(send_msg=True)
             return "", "e"
         if quest == "end" and type == "i":
