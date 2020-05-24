@@ -67,7 +67,6 @@ class QuizWindow(Screen):
         if not self.answered:
             logic.send_msg(answer, "a")
             self.answered = True
-            return
         if not self.question.text.endswith("Wait for result now..."):
             self.question.text = self.question.text + "\nWait for result now..."
 
